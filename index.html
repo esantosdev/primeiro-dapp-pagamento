@@ -1,0 +1,73 @@
+<p>
+    Recipient's ETH address: 
+    <input type="text" id="pay_to" size="48"value="0xc167bE6e37955EecAd2BD9E1B2036b6c3A92E90b">
+    </input> 
+    <br />
+    <br />
+    Amount in USD: 
+    <input type="text" id="amount_usd" value="10" size="3"></input> 
+    <br />
+    <br />
+    <button onclick="pay_to()">Pay</button>
+</p>
+
+<script>
+ 
+    async function pay_to() {
+        try {
+            window.web3 = new Web3(ethereum); // Dappscape injects ethereum object automatically
+            const accounts = await ethereum.enable(); // tries to enable ethereum
+            var account = accounts[0]; // account variable now holds currently active ETH address
+        } catch (e) {
+            alert("Browser not supported. Please use a dapp browser, such as Dappscape.");
+        }
+
+        try {
+            // First, we need to convert USD amount to ETH. 
+            const eth_usd_rate =
+                await ethereum.request({
+                    method: 'eth_getPrice'
+                });
+
+            // Second, we check the current average Gas prices, in Gwei
+            const gas_prices =
+                await ethereum.request({
+                    method: 'eth_getGasPrices'
+                });
+
+            var value_eth = document.getElementById("amount_usd").value / eth_usd_rate;
+            var pay_to = document.getElementById("pay_to").value;
+
+            var value_wei = Math.round(value_eth * 10e17); // converting ETH to WEI, round it to a whole number           
+            var value_wei_hex = '0x' + value_wei.toString(16); // transactions use hex values, so we convert to hex
+
+            var gas_price_wei = Math.round(gas_prices.fast * 10e8); // taking the current gas price for a fast transaction (possible values: slow, standard, fast, fastest) 
+
+            var gas_price_wei_hex = '0x' + gas_price_wei.toString(16); // gas price in hex
+            var gas = 21000; // the max amount of gas that a transaction requires. Simple payment is 21000  
+            var gas_hex = '0x' + gas.toString(16); // again, convert that to hex
+
+            const transactionHash = await ethereum.request({
+                method: 'eth_sendTransaction',
+                params: [
+                    {
+                        from: account,
+                        to: pay_to,
+                        value: value_wei_hex,
+                        gas: gas_hex,
+                        gasPrice: gas_price_wei_hex,
+                    },
+                ],
+            })
+                .then((result) => {
+                    // The result varies by RPC method.
+                    // For example, this method will return a transaction hash hexadecimal string on success.
+                    alert("Success, transaction hash: " + result);
+                });
+
+        } catch (error) {
+            console.log(error);
+            sendErr(error);
+        }
+    }
+</script>
